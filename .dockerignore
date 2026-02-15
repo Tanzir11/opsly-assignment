@@ -21,3 +21,6 @@ build/
 venv/
 .venv/
 env/
+
+# Local Milvus data directory
+milvus/

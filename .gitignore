@@ -37,6 +37,7 @@ htmlcov/
 # Docker volumes
 neo4j_data/
 mongodb_data/
+milvus/
 
 # Repo cache
 /tmp/opsly/
