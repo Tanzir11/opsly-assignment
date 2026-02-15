@@ -1,0 +1,22 @@
+# DEPRECATED: Dependencies have been migrated to pyproject.toml
+# Install with: pip install -e ".[dev]"
+#
+# This file is kept for backward compatibility with existing scripts.
+# See pyproject.toml for the canonical dependency list.
+
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+pydantic>=2.10.0
+pydantic-settings>=2.6.0
+python-dotenv>=1.0.0
+mcp>=1.2.0
+neo4j>=5.26.0
+motor>=3.6.0
+pymilvus>=2.5.0
+httpx>=0.28.0
+aiofiles>=24.1.0
+litellm>=1.55.0
+sentence-transformers>=3.3.0
+gitpython>=3.1.0
+sse-starlette>=2.1.0
+websockets>=14.1

@@ -1,0 +1,23 @@
+# Caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Environment variables (ignore all real env files, keep examples)
+.env
+.env.*
+!.env.example
+!.env.develop.example
+!.env.staging.example
+
+# Virtual environment
+venv/
+.venv/
+env/

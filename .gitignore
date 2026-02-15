@@ -1,0 +1,46 @@
+# Caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Environment variables (ignore all real env files, keep examples)
+.env
+.env.*
+!.env.example
+!.env.develop.example
+!.env.staging.example
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Test / coverage
+.pytest_cache/
+htmlcov/
+.coverage
+.mypy_cache/
+
+# Docker volumes
+neo4j_data/
+mongodb_data/
+
+# Repo cache
+/tmp/opsly/
+
+# OS
+.DS_Store
+Thumbs.db
