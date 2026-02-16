@@ -22,11 +22,17 @@ class Neo4jConnection:
 
     async def connect(self) -> None:
         try:
+            if self.user and not self.password:
+                raise Neo4jError(
+                    "NEO4J_PASSWORD is empty. Set NEO4J_PASSWORD in .env/.env.develop."
+                )
             self._driver = AsyncGraphDatabase.driver(
                 self.uri, auth=(self.user, self.password)
             )
             await self._driver.verify_connectivity()
             logger.info("Connected to Neo4j at %s", self.uri)
+        except Neo4jError:
+            raise
         except Exception as exc:
             raise Neo4jError(f"Failed to connect to Neo4j at {self.uri}: {exc}") from exc
 

@@ -105,29 +105,42 @@ curl -s http://localhost:8000/health
 curl -s http://localhost:8000/api/agents/health
 ```
 
-### Create index
+### Tested API flow (with JWT auth)
 
 ```bash
-curl -s -X POST http://localhost:8000/api/index \
+# 1) Get JWT token (default local credentials: tanzir:khan)
+TOKEN=$(curl -s -X POST http://localhost:8000/api/auth/token \
+  -H "Authorization: Basic dGFuemlyOmtoYW4=" | python -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')
+
+# Optional sanity check
+echo "$TOKEN" | cut -c1-25
+
+# 2) Start indexing any GitHub repo
+REPO_URL="https://github.com/tiangolo/fastapi.git"
+JOB_ID=$(curl -s -X POST http://localhost:8000/api/index \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"incremental": false}'
-```
+  -d "{\"repo_url\":\"$REPO_URL\",\"incremental\":false}" \
+  | python -c 'import json,sys; print(json.load(sys.stdin)["job_id"])')
 
-If you want to index a different repository, update `FASTAPI_REPO_URL` in `.env` first.
+echo "JOB_ID=$JOB_ID"
 
-### Check indexing status every couple of seconds, There is a support for opensource model but that was ocomputationally expensive so i was unable to test it instead used a deployed model for testings.
+# 3) Check indexing status
+curl -s "http://localhost:8000/api/index/status/$JOB_ID" \
+  -H "Authorization: Bearer $TOKEN" | python -m json.tool
 
-```bash
-curl -s http://localhost:8000/api/index/status/<JOB_ID>
-```
-
-### Ask a question keep updating session-id for clear history
-
-```bash
+# 4) Ask a chat question
 curl -s -X POST http://localhost:8000/api/chat \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"message":"What is the FastAPI class?","session_id":"demo1"}'
+  -d '{"message":"What is the FastAPI class?","session_id":"demo1"}' | python -m json.tool
+
+# 5) Verify graph stats
+curl -s http://localhost:8000/api/graph/statistics \
+  -H "Authorization: Bearer $TOKEN" | python -m json.tool
 ```
+
+The same flow works for any GitHub repository URL by changing `REPO_URL`.
 
 ### API docs URL ( Currently during a push docs are not disabled)
 
@@ -181,19 +194,47 @@ uvicorn src.app:app --host 0.0.0.0 --port 8000 --reload
 ### Terminal 7: verify health + index + ask question
 
 ```bash
+# Health
 curl -s http://localhost:8000/health
 curl -s http://localhost:8000/api/agents/health
 
-curl -s -X POST http://localhost:8000/api/index \
+# Auth token
+TOKEN=$(curl -s -X POST http://localhost:8000/api/auth/token \
+  -H "Authorization: Basic dGFuemlyOmtoYW4=" | python -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')
+
+# Index a repository
+REPO_URL="https://github.com/tiangolo/fastapi.git"
+JOB_ID=$(curl -s -X POST http://localhost:8000/api/index \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"incremental": false}'
+  -d "{\"repo_url\":\"$REPO_URL\",\"incremental\":false}" \
+  | python -c 'import json,sys; print(json.load(sys.stdin)["job_id"])')
+echo "JOB_ID=$JOB_ID"
 
-curl -s http://localhost:8000/api/index/status/<JOB_ID>
+# Check index status
+curl -s "http://localhost:8000/api/index/status/$JOB_ID" \
+  -H "Authorization: Bearer $TOKEN"
 
+# Chat
 curl -s -X POST http://localhost:8000/api/chat \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"message":"What is the FastAPI class?","session_id":"demo1"}'
+
+# Graph stats
+curl -s http://localhost:8000/api/graph/statistics \
+  -H "Authorization: Bearer $TOKEN"
 ```
+
+### Troubleshooting command mistakes (common)
+
+If command output looks strange, check these first:
+
+- Use `-X POST`, not malformed variants (for example, `-Xjson,systp` is invalid).
+- Use normal quotes (`"` and `'`), not smart quotes (`“` and `”`).
+- Ensure this header is closed correctly: `-H "Authorization: Bearer $TOKEN"`.
+- If you see `dquote>`, press `Ctrl + C` and paste the command again.
+- If `TOKEN` is empty, regenerate it with `/api/auth/token`.
 
 ### API docs URL (manual mode)
 
@@ -242,12 +283,28 @@ flowchart TB
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/api/chat` | Send message, receive response (supports streaming) |
-| `POST` | `/api/index` | Trigger repository indexing |
-| `GET` | `/api/index/status/{job_id}` | Check indexing job status |
+| `POST` | `/api/auth/token` | Create JWT access token (Basic auth or JSON credentials) |
+| `POST` | `/api/chat` | Send message, receive response (supports streaming, JWT required) |
+| `POST` | `/api/index` | Trigger repository indexing (JWT required) |
+| `GET` | `/api/index/status/{job_id}` | Check indexing job status (JWT required) |
 | `GET` | `/api/agents/health` | Health check for all agents |
-| `GET` | `/api/graph/statistics` | Knowledge graph statistics |
-| `WebSocket` | `/ws/chat` | Real-time streaming chat |
+| `GET` | `/api/graph/statistics` | Knowledge graph statistics (JWT required) |
+| `WebSocket` | `/ws/chat` | Real-time streaming chat (JWT required) |
+
+### Auth Request (Basic)
+
+```bash
+curl -s -X POST http://localhost:8000/api/auth/token \
+  -H "Authorization: Basic dGFuemlyOmtoYW4="
+```
+
+### Auth Request (JSON Body Alternative)
+
+```bash
+curl -s -X POST http://localhost:8000/api/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"tanzir","password":"khan"}'
+```
 
 ### Chat Request
 
@@ -322,6 +379,10 @@ All configuration uses **Pydantic Settings** with environment variable support.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `APP_ENV` | development | Environment flag |
+| `AUTH_USER_ID` | tanzir | API login user id |
+| `AUTH_PASSWORD` | khan | API login password |
+| `AUTH_JWT_SECRET` | opsly-dev-secret-change-me | JWT signing secret |
+| `AUTH_JWT_EXP_MINUTES` | 60 | JWT token expiry in minutes |
 | `NEO4J_URI` | bolt://localhost:7687 | Neo4j connection |
 | `MONGODB_URI` | mongodb://localhost:27017 | MongoDB connection |
 | `MILVUS_HOST` | localhost | Milvus host |
@@ -430,6 +491,7 @@ src/
       tools.py                        # store_conversation_turn, semantic_search_chunks
       retrieval.py                    # Hybrid retrieval (vector + memory)
   api/
+    routes_auth.py                     # POST /api/auth/token
     routes_chat.py                    # POST /api/chat (+ SSE streaming)
     routes_index.py                   # POST /api/index, GET /api/index/status
     routes_health.py                  # GET /api/agents/health
@@ -450,7 +512,7 @@ README.md
 
 - **Embedding dimension lock-in**: Switching embedding models requires re-indexing (different dimensions).
 - **Single-repo focus**: Currently optimized for indexing one repository at a time.
-- **No authentication**: The API gateway has no auth layer (Can change this is required ideally i prefer google oauth 2, but can work with jwt encryption with base64).
+- **Auth coverage**: JWT auth currently protects indexing, chat, graph statistics, and websocket chat endpoints.
 - **LLM dependency**: Complex queries (deep analysis, explanations) require a working LLM API key.
 - **Memory growth**: MongoDB conversation memory grows without limit will have to add restriction later on.
 

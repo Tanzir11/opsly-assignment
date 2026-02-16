@@ -15,18 +15,29 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 EnvFlag = Literal["development", "staging", "production"]
 
 
+def _resolve_env_override_files(app_env: str) -> list[Path]:
+    if app_env == "development":
+        return [
+            PROJECT_ROOT / ".env.development",
+            PROJECT_ROOT / ".env.develop",
+        ]
+    if app_env == "staging":
+        return [PROJECT_ROOT / ".env.staging"]
+    return []
+
+
 def _load_env_files() -> None:
     load_dotenv(PROJECT_ROOT / ".env")
     app_env = os.environ.get("APP_ENV", "development")
-    if app_env in ("development", "staging"):
-        load_dotenv(PROJECT_ROOT / f".env.{app_env}")
+    for env_file in _resolve_env_override_files(app_env):
+        load_dotenv(env_file)
 
 
 def _get_env_files() -> list[Path]:
     app_env = os.environ.get("APP_ENV", "development")
     if app_env == "production":
         return [PROJECT_ROOT / ".env"]
-    return [PROJECT_ROOT / ".env", PROJECT_ROOT / f".env.{app_env}"]
+    return [PROJECT_ROOT / ".env", *_resolve_env_override_files(app_env)]
 
 
 # Pre-load env so APP_ENV and overrides are available
@@ -158,6 +169,15 @@ class AppConfig(BaseSettings):
         default=30.0, alias="AGENT_TIMEOUT_SECONDS"
     )
     agent_max_retries: int = Field(default=2, alias="AGENT_MAX_RETRIES")
+
+    # API auth
+    auth_user_id: str = Field(default="tanzir", alias="AUTH_USER_ID")
+    auth_password: str = Field(default="khan", alias="AUTH_PASSWORD")
+    auth_jwt_secret: str = Field(
+        default="opsly-dev-secret-change-me",
+        alias="AUTH_JWT_SECRET",
+    )
+    auth_jwt_exp_minutes: int = Field(default=60, alias="AUTH_JWT_EXP_MINUTES")
 
     model_config = SettingsConfigDict(
         env_file=_get_env_files(),

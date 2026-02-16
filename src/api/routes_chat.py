@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from sse_starlette.sse import EventSourceResponse
 
+from src.core.auth import require_jwt_user
 from src.core.logging import correlation_id_var, get_logger, session_id_var
 from src.core.models import AgentName, ChatRequest, ChatResponse
 
@@ -19,7 +19,11 @@ router = APIRouter(prefix="/api", tags=["chat"])
 
 
 @router.post("/chat", response_model=None)
-async def chat(request: Request, body: ChatRequest) -> Any:
+async def chat(
+    request: Request,
+    body: ChatRequest,
+    _: str = Depends(require_jwt_user),
+) -> Any:
     # Generate session ID if not provided
     session_id = body.session_id or uuid.uuid4().hex[:16]
     session_id_var.set(session_id)

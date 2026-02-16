@@ -93,8 +93,21 @@ ChatResponse.model_rebuild()
 
 class IndexRequest(BaseModel):
 
-    repo_url: str | None = Field(default=None, description="Repository URL; uses default if absent")
+    repo_url: str = Field(..., description="GitHub repository URL to index")
     incremental: bool = Field(default=False, description="Incremental indexing by git diff")
+
+
+class AuthRequest(BaseModel):
+
+    user_id: str = Field(..., min_length=1, description="User identifier")
+    password: str = Field(..., min_length=1, description="User password")
+
+
+class AuthTokenResponse(BaseModel):
+
+    access_token: str
+    token_type: str = "bearer"
+    expires_at: datetime
 
 
 class IndexStatusResponse(BaseModel):

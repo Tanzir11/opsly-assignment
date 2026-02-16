@@ -1,11 +1,10 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
+from src.core.auth import require_jwt_user
 from src.core.logging import get_logger
 from src.core.models import AgentName
 
@@ -15,7 +14,10 @@ router = APIRouter(prefix="/api", tags=["graph"])
 
 
 @router.get("/graph/statistics")
-async def graph_statistics(request: Request) -> JSONResponse:
+async def graph_statistics(
+    request: Request,
+    _: str = Depends(require_jwt_user),
+) -> JSONResponse:
     mcp_client = request.app.state.mcp_client
 
     try:

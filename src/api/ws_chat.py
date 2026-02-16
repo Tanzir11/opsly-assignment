@@ -7,6 +7,7 @@ from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from src.core.auth import get_jwt_subject_from_authorization
 from src.core.logging import get_logger, session_id_var
 from src.core.models import AgentName
 
@@ -17,6 +18,19 @@ router = APIRouter(tags=["websocket"])
 
 @router.websocket("/ws/chat")
 async def websocket_chat(websocket: WebSocket) -> None:
+    authorization = websocket.headers.get("authorization")
+    if not authorization:
+        query_token = websocket.query_params.get("token")
+        if query_token:
+            authorization = f"Bearer {query_token}"
+
+    secret = websocket.app.state.config.auth_jwt_secret
+    try:
+        get_jwt_subject_from_authorization(authorization, secret)
+    except ValueError:
+        await websocket.close(code=1008, reason="Unauthorized")
+        return
+
     await websocket.accept()
     mcp_client = websocket.app.state.mcp_client
 
