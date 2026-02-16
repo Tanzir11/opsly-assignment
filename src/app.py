@@ -9,6 +9,7 @@ import uvicorn
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
+from src.api.routes_auth import router as auth_router
 from src.api.routes_chat import router as chat_router
 from src.api.routes_graph import router as graph_router
 from src.api.routes_health import router as health_router
@@ -108,6 +109,7 @@ async def correlation_id_middleware(request: Request, call_next: object) -> Resp
 # ─── Include routers ────────────────────────────────────────────────────────
 
 app.include_router(chat_router)
+app.include_router(auth_router)
 app.include_router(index_router)
 app.include_router(health_router)
 app.include_router(graph_router)

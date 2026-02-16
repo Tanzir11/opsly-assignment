@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
 import uvicorn
+from fastapi.encoders import jsonable_encoder
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
@@ -98,7 +99,9 @@ async def call_tool(request: dict[str, Any]) -> JSONResponse:
 
     try:
         result = await handler(**arguments)
-        return JSONResponse({"success": True, "result": result})
+        return JSONResponse(
+            content=jsonable_encoder({"success": True, "result": result})
+        )
     except Exception as exc:
         logger.error("Tool %s failed: %s", tool_name, exc, exc_info=True)
         return JSONResponse(

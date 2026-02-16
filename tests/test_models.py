@@ -6,6 +6,8 @@ import pytest
 from src.core.models import (
     AgentName,
     AgentResponse,
+    AuthRequest,
+    AuthTokenResponse,
     ChatRequest,
     ChatResponse,
     CodeEntity,
@@ -54,9 +56,9 @@ class TestChatModels:
 
 class TestIndexModels:
 
-    def test_index_request_defaults(self) -> None:
-        req = IndexRequest()
-        assert req.repo_url is None
+    def test_index_request_required_repo_url(self) -> None:
+        req = IndexRequest(repo_url="https://github.com/tiangolo/fastapi.git")
+        assert req.repo_url == "https://github.com/tiangolo/fastapi.git"
         assert req.incremental is False
 
     def test_index_status_response(self) -> None:
@@ -70,6 +72,19 @@ class TestIndexModels:
         )
         assert resp.progress == 0.5
         assert resp.status == IndexJobStatus.RUNNING
+
+
+class TestAuthModels:
+
+    def test_auth_request(self) -> None:
+        req = AuthRequest(user_id="tanzir", password="khan")
+        assert req.user_id == "tanzir"
+        assert req.password == "khan"
+
+    def test_auth_token_response(self) -> None:
+        token = AuthTokenResponse(access_token="token-123", expires_at="2030-01-01T00:00:00Z")
+        assert token.token_type == "bearer"
+        assert token.access_token == "token-123"
 
 
 class TestCodeEntityModels:
